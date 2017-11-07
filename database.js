@@ -20,6 +20,24 @@ const pool = new Pool({
     // connectionString: connectionString
 });
 
+exports.fetchLayers = function(callback) {
+    var sql = "SELECT DISTINCT datasource_id FROM features;";
+    pool.query(sql, (err, res) => {
+        if (err) {
+            callback && callback(err);
+            return;
+        }
+
+        var layers = [];
+        for (var i=0; i<res.rows.length; i++) {
+            log.info(res.rows[i]);
+            layers.push(res.rows[i].datasource_id);
+        }
+
+        callback && callback(err, layers);
+    });
+}
+
 exports.insertFeature = function(uuid, datasource_id, geom, properties, callback) {
     if (!uuid) {
         uuid = uuidv4();
@@ -35,7 +53,7 @@ exports.insertFeature = function(uuid, datasource_id, geom, properties, callback
     var longitude = (geom.lng||geom.lon||0);
     var latitude  = (geom.lat||0);
 
-    var sql = 'INSERT INTO features (uuid, datasource_id, geom, properties) VALUES ($1,$2,ST_MakePoint($3,$4),$5)';
+    var sql = 'INSERT INTO features (uuid, datasource_id, geom, properties) VALUES ($1,$2,ST_MakePoint($3,$4),$5);';
 
     pool.query(sql, [uuid, datasource_id, longitude, latitude, properties], (err, res) => {
         callback && callback(err, res);
@@ -61,8 +79,8 @@ function buildLayerFromQueryResults(res) {
 }
 
 exports.fetchFeature = function(uuid, callback) {
-    var sql = "SELECT ST_X(geom) as longitude, ST_Y(geom) as latitude, properties, created_at, updated_at, geoid FROM features WHERE uuid = '"+uuid+"' ORDER BY geoid DESC LIMIT 1;";
-    pool.query(sql, (err, res) => {
+    var sql = "SELECT ST_X(geom) as longitude, ST_Y(geom) as latitude, properties, created_at, updated_at, geoid FROM features WHERE uuid = $1 ORDER BY geoid DESC LIMIT 1;";
+    pool.query(sql, [uuid], (err, res) => {
         if (err) {
             callback && callback(err);
             return;

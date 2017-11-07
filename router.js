@@ -14,7 +14,31 @@ var router = express.Router();              // get an instance of the express Ro
 
 // https://wiki.osgeo.org/wiki/Tile_Map_Service_Specification#global-geodetic
 
-router.get('/:datasource_id', function (req, res) {
+
+router.get('/layers', function (req, res) {
+    log.info({
+        request: {
+            ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+            path: req.path,
+            userAgent: req.headers['user-agent']
+        }
+    });
+    database.fetchLayers(function(err, layers) {
+        if (err) {
+            return res.json({
+                        status: "error",
+                        error: err
+                    });
+        }
+        res.json({
+            status: "ok",
+            data: layers
+        });
+    });
+});
+
+
+router.get('/layer/:datasource_id', function (req, res) {
     log.info({
         request: {
             ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
@@ -36,7 +60,7 @@ router.get('/:datasource_id', function (req, res) {
     });
 });
 
-router.get('/:datasource_id/:id', function (req, res) {
+router.get('/layer/:datasource_id/feature/:id', function (req, res) {
     log.info({
         request: {
             ip: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
